@@ -15,7 +15,8 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: cobank-frontend:latest
+        image: localhost/cobank-frontend:latest
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80
         resources:

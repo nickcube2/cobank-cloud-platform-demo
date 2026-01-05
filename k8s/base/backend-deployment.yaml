@@ -15,6 +15,7 @@ spec:
     spec:
       containers:
       - name: backend
-        image: cobank-backend:latest
+        image: localhost/cobank-backend:latest
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 3000

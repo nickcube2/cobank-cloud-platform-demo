@@ -1,0 +1,33 @@
+pipeline {
+  agent any
+  stages {
+    stage('Build') {
+      parallel {
+        stage('Frontend') {
+          steps {
+            dir('apps/frontend') {
+              sh 'docker build -t cobank-frontend:latest .'
+            }
+          }
+        }
+        stage('Backend') {
+          steps {
+            dir('apps/backend') {
+              sh 'docker build -t cobank-backend:latest .'
+            }
+          }
+        }
+      }
+    }
+    stage('Security Scan') {
+      steps {
+        sh './ci/trivy-scan.sh'
+      }
+    }
+    stage('Push Images') {
+      steps {
+        echo "Push to ECR/TCR (add credentials)"
+      }
+    }
+  }
+}

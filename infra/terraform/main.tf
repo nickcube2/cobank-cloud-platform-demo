@@ -32,13 +32,32 @@ module "vpc" {
 
 
 module "eks" {
-  source       = "terraform-aws-modules/eks/aws"
-  version      = "~> 20.0"
-  cluster_name = var.cluster_name
-  cluster_version = "1.31"  # Latest as of 2026
+  source  = "terraform-aws-modules/eks/aws"
+  version = "~> 20.0"
+
+  cluster_name    = var.cluster_name
+  cluster_version = "1.31"
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
+
+  enable_irsa = true
+
+
+  access_entries = {
+    kwame_admin = {
+      principal_arn = "arn:aws:iam::405449137534:user/kwame"
+
+      policy_associations = {
+        admin = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            type = "cluster"
+          }
+        }
+      }
+    }
+  }
 
   eks_managed_node_groups = {
     default = {
@@ -46,14 +65,10 @@ module "eks" {
       max_size     = 5
       desired_size = 3
       instance_types = ["t3.medium"]
-
-      enable_cluster_creator_admin_permissions = true
     }
   }
-
-  # Enable OIDC for IAM roles
-  enable_irsa = true
 }
+
 
 resource "aws_ecr_repository" "frontend" {
   name                 = "cobank-frontend"

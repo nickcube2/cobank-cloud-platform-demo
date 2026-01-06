@@ -4,19 +4,18 @@ data "aws_availability_zones" "available" {
 
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
-  version = "~> 5.0"
+  version = "~> 5.0"   # ← This forces v5.x (compatible with your config)
 
   name = "${var.cluster_name}-vpc"
   cidr = var.vpc_cidr
 
-  # Explicitly limit to 3 AZs (the first 3 available)
   azs             = slice(data.aws_availability_zones.available.names, 0, 3)
   private_subnets = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
   public_subnets  = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
 
   enable_nat_gateway     = true
   single_nat_gateway     = false
-  one_nat_gateway_per_az = true   # One NAT per AZ for high availability
+  one_nat_gateway_per_az = true
   enable_dns_hostnames   = true
 
   public_subnet_tags = {
@@ -29,6 +28,8 @@ module "vpc" {
 
   tags = var.tags
 }
+
+
 
 module "eks" {
   source       = "terraform-aws-modules/eks/aws"

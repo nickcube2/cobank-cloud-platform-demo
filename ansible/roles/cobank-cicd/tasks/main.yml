@@ -1,29 +1,3 @@
----
-- name: Fail if not in Git repository
-  assert:
-    that: image_tag != ""
-    fail_msg: "Not in a Git repository – cannot determine image tag"
-
-- name: Get AWS Account ID (always run)
-  command: aws sts get-caller-identity --query Account --output text
-  register: aws_account
-  changed_when: false
-  run_once: true
-  ignore_errors: false
-
-- name: Set ECR facts safely
-  set_fact:
-    account_id: "{{ aws_account.stdout | default('000000000000') }}"
-    ecr_registry: "{{ aws_account.stdout | default('000000000000') }}.dkr.ecr.{{ aws_region }}.amazonaws.com"
-    frontend_image: "{{ aws_account.stdout | default('000000000000') }}.dkr.ecr.{{ aws_region }}.amazonaws.com/{{ frontend_repo }}:{{ image_tag }}"
-    backend_image: "{{ aws_account.stdout | default('000000000000') }}.dkr.ecr.{{ aws_region }}.amazonaws.com/{{ backend_repo }}:{{ image_tag }}"
-
-- name: ECR Login
-  command: >
-    aws ecr get-login-password --region {{ aws_region }} |
-    docker login --username AWS --password-stdin {{ ecr_registry }}
-  no_log: true
-
 - name: Process Frontend Image
   block:
     - name: Build frontend image with cache
@@ -31,7 +5,7 @@
         name: "{{ frontend_repo }}"
         tag: "{{ image_tag }}"
         build:
-          path: "{{ playbook_dir }}/../../apps/frontend"
+          path: "{{ playbook_dir }}/../apps/frontend"  # ← Fixed: one less ../
           pull: yes
           cache_from:
             - "{{ frontend_repo }}:latest"
@@ -54,7 +28,7 @@
         name: "{{ backend_repo }}"
         tag: "{{ image_tag }}"
         build:
-          path: "{{ playbook_dir }}/../../apps/backend"
+          path: "{{ playbook_dir }}/../apps/backend"  # ← Fixed: one less ../
           pull: yes
           cache_from:
             - "{{ backend_repo }}:latest"
@@ -69,75 +43,3 @@
         docker tag {{ backend_repo }}:{{ image_tag }} {{ ecr_registry }}/{{ backend_repo }}:latest
         docker push {{ backend_image }}
         docker push {{ ecr_registry }}/{{ backend_repo }}:latest
-
-- name: Update kubeconfig for EKS
-  command: aws eks update-kubeconfig --name {{ cluster_name }} --region {{ aws_region }}
-  changed_when: false
-
-- name: Apply Kubernetes manifests (idempotent)
-  kubernetes.core.k8s:
-    state: present
-    definition: "{{ lookup('file', item) | from_yaml_all }}"
-  loop:
-    - "{{ playbook_dir }}/../../k8s/base/namespace.yaml"
-    - "{{ playbook_dir }}/../../k8s/base/frontend-deployment.yaml"
-    - "{{ playbook_dir }}/../../k8s/base/backend-deployment.yaml"
-    - "{{ playbook_dir }}/../../k8s/base/services.yaml"
-    - "{{ playbook_dir }}/../../k8s/base/hpa.yaml"
-    - "{{ playbook_dir }}/../../k8s/istio/gateway.yaml"
-    - "{{ playbook_dir }}/../../k8s/istio/virtualservice.yaml"
-
-- name: Wait for frontend pods to be Running
-  kubernetes.core.k8s_info:
-    api_version: v1
-    kind: Pod
-    namespace: "{{ app_namespace }}"
-    label_selectors:
-      - app=frontend
-  register: frontend_pods
-  until: >
-    frontend_pods.resources is defined and
-    frontend_pods.resources | length > 0 and
-    frontend_pods.resources | selectattr('status.phase', 'equalto', 'Running') | list | length == frontend_pods.resources | length
-  retries: 60
-  delay: 10
-
-- name: Wait for backend pods to be Running (optional)
-  kubernetes.core.k8s_info:
-    api_version: v1
-    kind: Pod
-    namespace: "{{ app_namespace }}"
-    label_selectors:
-      - app=backend
-  register: backend_pods
-  until: >
-    backend_pods.resources is defined and
-    backend_pods.resources | length > 0 and
-    backend_pods.resources | selectattr('status.phase', 'equalto', 'Running') | list | length == backend_pods.resources | length
-  retries: 60
-  delay: 10
-  ignore_errors: yes
-
-- name: Trigger ArgoCD sync (force if needed)
-  uri:
-    url: "https://{{ argocd_server }}/api/v1/applications/{{ argocd_app_name }}/sync"
-    method: POST
-    headers:
-      Authorization: "Bearer {{ lookup('env', 'ARGOCD_TOKEN') | default('') }}"
-    body_format: json
-    body: '{"prune": true, "dryRun": false}'
-    validate_certs: no
-    status_code: 200
-  ignore_errors: yes
-
-- name: Deployment Complete
-  debug:
-    msg: |
-      🎉 CoBank platform deployed successfully!
-      Git commit/tag: {{ image_tag }}
-      Frontend image: {{ frontend_image }}
-      Backend image: {{ backend_image }}
-
-      Access your beautiful CoBank homepage:
-      - Local test: docker compose up or kubectl port-forward svc/frontend 8080:80 -n cobank
-      - AWS live: kubectl port-forward svc/istio-ingressgateway 8081:80 -n istio-system

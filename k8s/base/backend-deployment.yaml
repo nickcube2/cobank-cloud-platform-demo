@@ -4,7 +4,7 @@ metadata:
   name: backend
   namespace: cobank
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     matchLabels:
       app: backend
@@ -14,8 +14,7 @@ spec:
         app: backend
     spec:
       containers:
-      - name: backend
-        image: localhost/cobank-backend:latest
-        imagePullPolicy: IfNotPresent
-        ports:
-        - containerPort: 3000
+        - name: backend
+          image: cobank-backend:PLACEHOLDER_TAG
+          ports:
+            - containerPort: 5000

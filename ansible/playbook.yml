@@ -1,0 +1,6 @@
+---
+- name: CoBank CI/CD Deployment
+  hosts: localhost
+  gather_facts: no
+  roles:
+    - cobank-cicd

@@ -1,0 +1,15 @@
+aws_region: us-east-1
+cluster_name: cobank-eks
+app_namespace: cobank
+
+# Image repos (must exist in ECR)
+frontend_repo: cobank-frontend
+backend_repo: cobank-backend
+
+# Use Git SHA for immutable tagging
+image_tag: "{{ lookup('pipe', 'git rev-parse --short HEAD') }}"
+
+# ArgoCD
+argocd_namespace: argocd
+argocd_app_name: cobank-platform
+argocd_server: argocd-server.argocd.svc.cluster.local  # or external URL

@@ -1,0 +1,4 @@
+cluster_name: cobank-eks
+region: us-east-1
+kubeconfig: "~/.kube/config"
+argo_namespace: argocd

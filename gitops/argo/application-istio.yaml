@@ -1,17 +1,20 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: cobank-platform
+  name: cobank-istio
   namespace: argocd
 spec:
   project: default
+
   source:
     repoURL: https://github.com/nickcube2/cobank-cloud-platform.git
-    targetRevision: HEAD
-    path: k8s
+    targetRevision: main
+    path: k8s/istio
+
   destination:
     server: https://kubernetes.default.svc
     namespace: cobank
+
   syncPolicy:
     automated:
       prune: true

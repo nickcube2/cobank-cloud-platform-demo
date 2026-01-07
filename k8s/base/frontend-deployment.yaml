@@ -4,7 +4,7 @@ metadata:
   name: frontend
   namespace: cobank
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     matchLabels:
       app: frontend
@@ -14,15 +14,7 @@ spec:
         app: frontend
     spec:
       containers:
-      - name: frontend
-        image: localhost/cobank-frontend:latest
-        imagePullPolicy: IfNotPresent
-        ports:
-        - containerPort: 80
-        resources:
-          requests:
-            memory: "64Mi"
-            cpu: "100m"
-          limits:
-            memory: "128Mi"
-            cpu: "200m"
+        - name: frontend
+          image: cobank-frontend:PLACEHOLDER_TAG
+          ports:
+            - containerPort: 80

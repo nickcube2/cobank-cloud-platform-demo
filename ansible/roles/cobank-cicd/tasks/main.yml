@@ -22,59 +22,59 @@
     docker login --username AWS --password-stdin {{ ecr_registry }}
   no_log: true
 
-- name: Build, Scan & Push Images in Parallel
+- name: Process Frontend Image
   block:
-    - name: Build and process images
-      loop:
-        - { name: frontend, path: "../../apps/frontend" }
-        - { name: backend, path: "../../apps/backend" }
-      loop_control:
-        loop_var: app
-      async: 600
-      poll: 0
-      register: build_jobs
-      vars:
-        repo_name: "cobank-{{ app.name }}"
-        full_image: "{{ ecr_registry }}/{{ repo_name }}:{{ image_tag }}"
-      tasks:
-        - name: Build {{ app.name }} image with cache
-          docker_image:
-            name: "{{ repo_name }}"
-            tag: "{{ image_tag }}"
-            build:
-              path: "{{ app.path }}"
-              pull: yes
-              cache_from:
-                - "{{ repo_name }}:latest"
-            source: build
-            state: present
+    - name: Build frontend image with cache
+      docker_image:
+        name: "{{ frontend_repo }}"
+        tag: "{{ image_tag }}"
+        build:
+          path: "{{ playbook_dir }}/../../apps/frontend"
+          pull: yes
+          cache_from:
+            - "{{ frontend_repo }}:latest"
+        source: build
 
-        - name: Trivy scan {{ app.name }} (fail on HIGH/CRITICAL)
-          command: docker run --rm aquasec/trivy image --exit-code 1 --no-progress --severity HIGH,CRITICAL {{ repo_name }}:{{ image_tag }}
+    - name: Trivy scan frontend
+      command: docker run --rm aquasec/trivy image --exit-code 1 --no-progress --severity HIGH,CRITICAL {{ frontend_repo }}:{{ image_tag }}
 
-        - name: Tag and push {{ app.name }} image
-          shell: |
-            docker tag {{ repo_name }}:{{ image_tag }} {{ full_image }}
-            docker tag {{ repo_name }}:{{ image_tag }} {{ ecr_registry }}/{{ repo_name }}:latest
-            docker push {{ full_image }}
-            docker push {{ ecr_registry }}/{{ repo_name }}:latest
+    - name: Tag and push frontend
+      shell: |
+        docker tag {{ frontend_repo }}:{{ image_tag }} {{ frontend_image }}
+        docker tag {{ frontend_repo }}:{{ image_tag }} {{ ecr_registry }}/{{ frontend_repo }}:latest
+        docker push {{ frontend_image }}
+        docker push {{ ecr_registry }}/{{ frontend_repo }}:latest
+  tags: frontend
 
-    - name: Wait for parallel image jobs
-      async_status:
-        jid: "{{ item.async_result.job_id }}"
-      loop: "{{ build_jobs.results }}"
-      loop_control:
-        loop_var: item
-      register: async_result
-      until: async_result.finished
-      retries: 60
-      delay: 10
+- name: Process Backend Image
+  block:
+    - name: Build backend image with cache
+      docker_image:
+        name: "{{ backend_repo }}"
+        tag: "{{ image_tag }}"
+        build:
+          path: "{{ playbook_dir }}/../../apps/backend"
+          pull: yes
+          cache_from:
+            - "{{ backend_repo }}:latest"
+        source: build
+
+    - name: Trivy scan backend
+      command: docker run --rm aquasec/trivy image --exit-code 1 --no-progress --severity HIGH,CRITICAL {{ backend_repo }}:{{ image_tag }}
+
+    - name: Tag and push backend
+      shell: |
+        docker tag {{ backend_repo }}:{{ image_tag }} {{ backend_image }}
+        docker tag {{ backend_repo }}:{{ image_tag }} {{ ecr_registry }}/{{ backend_repo }}:latest
+        docker push {{ backend_image }}
+        docker push {{ ecr_registry }}/{{ backend_repo }}:latest
+  tags: backend
 
 - name: Update kubeconfig
   command: aws eks update-kubeconfig --name {{ cluster_name }} --region {{ aws_region }}
   changed_when: false
 
-- name: Apply Kubernetes manifests (idempotent)
+- name: Apply Kubernetes manifests
   kubernetes.core.k8s:
     state: present
     definition: "{{ lookup('file', item) | from_yaml_all }}"
@@ -93,26 +93,25 @@
     kind: Deployment
     name: frontend
     namespace: "{{ app_namespace }}"
-    wait: yes
     timeout: 300
 
-- name: Trigger ArgoCD sync (force if needed)
+- name: Trigger ArgoCD sync
   uri:
     url: "https://{{ argocd_server }}/api/v1/applications/{{ argocd_app_name }}/sync"
     method: POST
     headers:
-      Authorization: "Bearer {{ lookup('env', 'ARGOCD_TOKEN') | default(omit) }}"
+      Authorization: "Bearer {{ lookup('env', 'ARGOCD_TOKEN') | default('') }}"
     body_format: json
-    body: '{"prune": true, "dryRun": false}'
+    body: '{"prune": true}'
     validate_certs: no
     status_code: 200
-  ignore_errors: yes  # Fallback if ArgoCD not used or token missing
+  ignore_errors: yes
 
-- name: Deployment successful
+- name: Deployment Complete
   debug:
     msg: |
-      CoBank platform deployed!
-      Tag: {{ image_tag }}
+      🎉 CoBank platform deployed successfully!
+      Image tag: {{ image_tag }}
       Frontend: {{ frontend_image }}
       Backend: {{ backend_image }}
-      Access via Istio gateway or port-forward.
+      Access your beautiful CoBank homepage via Istio gateway!

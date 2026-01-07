@@ -37,15 +37,15 @@
             - "{{ frontend_repo }}:latest"
         source: build
 
-    - name: Trivy scan frontend (fail on HIGH/CRITICAL)
-      command: docker run --rm aquasec/trivy image --exit-code 1 --no-progress --severity HIGH,CRITICAL {{ frontend_repo }}:{{ image_tag }}
+- name: Trivy scan frontend (fail on HIGH/CRITICAL)
+  command: docker run --rm aquasec/trivy image --exit-code 1 --no-progress --severity HIGH,CRITICAL {{ frontend_repo }}:{{ image_tag }}
 
-    - name: Tag and push frontend image
-      shell: |
-        docker tag {{ frontend_repo }}:{{ image_tag }} {{ frontend_image }}
-        docker tag {{ frontend_repo }}:{{ image_tag }} {{ ecr_registry }}/{{ frontend_repo }}:latest
-        docker push {{ frontend_image }}
-        docker push {{ ecr_registry }}/{{ frontend_repo }}:latest
+- name: Tag and push frontend image
+  shell: |
+    docker tag {{ frontend_repo }}:{{ image_tag }} {{ frontend_image }}
+    docker tag {{ frontend_repo }}:{{ image_tag }} {{ ecr_registry }}/{{ frontend_repo }}:latest
+    docker push {{ frontend_image }}
+    docker push {{ ecr_registry }}/{{ frontend_repo }}:latest
 
 - name: Process Backend Image
   block:
@@ -60,15 +60,15 @@
             - "{{ backend_repo }}:latest"
         source: build
 
-    - name: Trivy scan backend (fail on HIGH/CRITICAL)
-      command: docker run --rm aquasec/trivy image --exit-code 1 --no-progress --severity HIGH,CRITICAL {{ backend_repo }}:{{ image_tag }}
+- name: Trivy scan backend (fail on HIGH/CRITICAL)
+  command: docker run --rm aquasec/trivy image --exit-code 1 --no-progress --severity HIGH,CRITICAL {{ backend_repo }}:{{ image_tag }}
 
-    - name: Tag and push backend image
-      shell: |
-        docker tag {{ backend_repo }}:{{ image_tag }} {{ backend_image }}
-        docker tag {{ backend_repo }}:{{ image_tag }} {{ ecr_registry }}/{{ backend_repo }}:latest
-        docker push {{ backend_image }}
-        docker push {{ ecr_registry }}/{{ backend_repo }}:latest
+- name: Tag and push backend image
+  shell: |
+    docker tag {{ backend_repo }}:{{ image_tag }} {{ backend_image }}
+    docker tag {{ backend_repo }}:{{ image_tag }} {{ ecr_registry }}/{{ backend_repo }}:latest
+    docker push {{ backend_image }}
+    docker push {{ ecr_registry }}/{{ backend_repo }}:latest
 
 - name: Update kubeconfig for EKS
   command: aws eks update-kubeconfig --name {{ cluster_name }} --region {{ aws_region }}

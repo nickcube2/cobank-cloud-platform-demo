@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: cobank-base
+  name: cobank-platform-dev
   namespace: argocd
 spec:
   project: default
@@ -9,7 +9,7 @@ spec:
   source:
     repoURL: https://github.com/nickcube2/cobank-cloud-platform.git
     targetRevision: main
-    path: k8s/base
+    path: k8s/overlays/dev
 
   destination:
     server: https://kubernetes.default.svc

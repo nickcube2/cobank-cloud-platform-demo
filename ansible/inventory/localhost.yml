@@ -2,4 +2,4 @@ all:
   hosts:
     localhost:
       ansible_connection: local
-      ansible_python_interpreter: /Users/kwame/ansible-venv/bin/python
+      # Use the python that is running Ansible. Do not hardcode a dev machine path.

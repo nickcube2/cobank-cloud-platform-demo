@@ -131,6 +131,21 @@
             font-weight: 300;
             margin-bottom: 20px;
         }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.14);
+            border: 1px solid rgba(255,255,255,0.22);
+            font-weight: 500;
+        }
+
+        .status-pill i {
+            color: var(--accent-gold);
+        }
         
         .hero-highlight {
             font-size: 24px;
@@ -541,6 +556,10 @@
             <div class="hero-tag">CoBank News</div>
             <h1 class="hero-title">CoBank board approves special all-cash patronage distribution</h1>
             <div class="hero-subtitle">of $79 million for 2025</div>
+            <div class="status-pill" aria-live="polite">
+                <i class="fas fa-heartbeat" aria-hidden="true"></i>
+                <span id="backend-status">Backend: checking…</span>
+            </div>
             <div class="hero-highlight">Financial Services for Rural America</div>
         </div>
     </section>
@@ -772,5 +791,7 @@
             });
         });
     </script>
+
+    <script src="/assets/app.js"></script>
 </body>
 </html>

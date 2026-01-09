@@ -16,7 +16,7 @@ spec:
         - destination:
             host: backend.cobank.svc.cluster.local
             port:
-              number: 5000
+              number: 3000
     - route:
         - destination:
             host: frontend.cobank.svc.cluster.local

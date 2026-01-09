@@ -13,8 +13,45 @@ spec:
       labels:
         app: backend
     spec:
+      securityContext:
+        fsGroup: 10001
+      volumes:
+        - name: tmp
+          emptyDir: {}
       containers:
         - name: backend
-          image: cobank-backend:PLACEHOLDER_TAG
+          image: cobank-backend
           ports:
-            - containerPort: 5000
+            - containerPort: 3000
+          env:
+            - name: PORT
+              value: "3000"
+          readinessProbe:
+            httpGet:
+              path: /api/ready
+              port: 3000
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/live
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp

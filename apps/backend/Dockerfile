@@ -1,4 +1,17 @@
-FROM python:3.11-slim
+FROM node:20-alpine
+
 WORKDIR /app
-COPY app.py .
-CMD ["python", "app.py"]
+
+# Install only production dependencies
+COPY package.json package-lock.json* ./
+# Use npm install to tolerate repos without a lockfile.
+RUN npm install --omit=dev
+
+COPY server.js ./
+
+ENV NODE_ENV=production
+ENV PORT=3000
+
+EXPOSE 3000
+
+CMD ["node", "server.js"]

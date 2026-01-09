@@ -167,6 +167,38 @@
         - "{{ playbook_dir }}/../k8s/istio/gateway.yaml"
         - "{{ playbook_dir }}/../k8s/istio/virtualservice.yaml"
 
+    - name: Patch backend deployment image to ECR tag
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: backend
+            namespace: "{{ app_namespace }}"
+          spec:
+            template:
+              spec:
+                containers:
+                  - name: backend
+                    image: "{{ backend_image }}"
+
+    - name: Patch frontend deployment image to ECR tag
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: frontend
+            namespace: "{{ app_namespace }}"
+          spec:
+            template:
+              spec:
+                containers:
+                  - name: frontend
+                    image: "{{ frontend_image }}"
+
     ###########################################################################
     # 7. HEALTH CHECKS
     ###########################################################################

@@ -54,7 +54,7 @@ Frontend + Backend (Istio Ingress)
 ```
 .
 ├── ansible/                # Build, scan, push, deploy
-├── infra/terraform/        # AWS VPC + EKS
+├── terraform/              # AWS VPC + EKS (Terraform)
 ├── apps/                   # Frontend & Backend code
 ├── k8s/                    # Kubernetes manifests
 ├── gitops/argo/            # ArgoCD applications
@@ -85,6 +85,7 @@ docker-compose up
 ```
 
 *Frontend:* http://localhost:8080
+*Backend API:* http://localhost:3000/api/health
 
 
 > Docker Compose simulates the deployed environment locally.
@@ -103,10 +104,10 @@ minikube start
 kubectl config use-context minikube
 ```
 
-3. Apply manifests:
+3. Apply manifests (via Kustomize overlays):
 
 ```bash
-kubectl apply -f k8s/
+kubectl apply -k k8s/overlays/dev
 ```
 
 4. Check pods & services:
@@ -273,7 +274,8 @@ kubectl apply -n argocd \
 ### 2. Deploy ArgoCD Application
 
 ```bash
-kubectl apply -f gitops/argo/application.yaml
+kubectl apply -f gitops/argo/application-base.yaml
+kubectl apply -f gitops/argo/application-istio.yaml
 ```
 
 ArgoCD will:

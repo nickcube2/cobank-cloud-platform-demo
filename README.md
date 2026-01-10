@@ -177,6 +177,118 @@ kubectl -n cobank port-forward svc/frontend 8080:80
 
 ---
 
+
+## Monitoring & Observability
+
+This project includes a lightweight monitoring stack to provide visibility into application and platform health, following patterns commonly used in regulated financial environments and AWS EKS deployments.
+
+Monitoring is intentionally deployed as a separate concern from the application workloads.
+
+### Components
+
+- **Prometheus** for metrics collection
+- **Grafana** for visualization and dashboards
+- **Application-level metrics** exposed by the backend
+- **Kubernetes-native service discovery**
+
+---
+
+### Monitoring (Local – Docker)
+
+Prometheus and Grafana can be run locally using Docker Compose to observe the backend service running on the host.
+
+Start monitoring locally:
+
+```bash
+docker compose -f monitoring/docker-compose.monitoring.yml up
+````
+
+Access:
+
+* Prometheus: [http://localhost:9090](http://localhost:9090)
+* Grafana: [http://localhost:3001](http://localhost:3001)
+
+  * Username: `admin`
+  * Password: `admin`
+
+In this mode, Prometheus scrapes the backend metrics endpoint at:
+
+```text
+http://host.docker.internal:3000/metrics
+```
+
+---
+
+### Monitoring (Local Kubernetes – kind / minikube)
+
+The same monitoring stack can be deployed into Kubernetes using native manifests.
+
+Deploy monitoring components:
+
+```bash
+kubectl apply -f monitoring/k8s/namespace.yaml
+kubectl apply -f monitoring/k8s/prometheus/
+kubectl apply -f monitoring/k8s/grafana/
+```
+
+Port-forward services:
+
+```bash
+kubectl -n monitoring port-forward svc/prometheus 9090:9090
+kubectl -n monitoring port-forward svc/grafana 3001:3000
+```
+
+Prometheus uses Kubernetes endpoint discovery to scrape backend metrics from the `cobank` namespace without hard-coded targets.
+
+---
+
+### Backend Metrics
+
+The backend exposes Prometheus-compatible metrics at:
+
+```text
+/metrics
+```
+
+Metrics include:
+
+* HTTP request rate
+* Request latency (p95)
+* Process CPU usage
+* Node.js heap usage
+* Pod availability indicators
+
+These metrics are visualized using a preloaded Grafana dashboard.
+
+---
+
+### Monitoring Smoke Test
+
+A monitoring smoke test is provided to validate observability before or after deployment.
+
+`scripts/smoke-test-monitoring.sh`
+
+```bash
+#!/usr/bin/env bash
+set -e
+
+echo "Checking backend metrics endpoint..."
+curl -sf http://localhost:3000/metrics | grep http_request_duration_seconds
+
+echo "Monitoring smoke test passed"
+```
+
+---
+
+### Design Rationale
+
+Monitoring is included by default to reflect operational requirements typical of banking and regulated environments, where observability, reliability, and early issue detection are critical.
+
+```
+
+
+---
+
 # 3) AWS Cloud Deployment (Terraform → ECR → EKS → Istio → ArgoCD)
 
 This follows the lower half of the diagram:

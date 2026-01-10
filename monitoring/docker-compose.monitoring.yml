@@ -1,0 +1,45 @@
+services:
+  prometheus:
+    image: prom/prometheus:v2.55.0
+    container_name: cobank-prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - /bin/sh
+      - -c
+      - |
+        cat > /etc/prometheus/prometheus.yml <<'EOF'
+        global:
+          scrape_interval: 15s
+          evaluation_interval: 15s
+
+        scrape_configs:
+          - job_name: "cobank-backend-local"
+            metrics_path: /metrics
+            static_configs:
+              - targets:
+                  # Docker Desktop (Mac/Windows) supports host.docker.internal by default
+                  - "host.docker.internal:3000"
+        EOF
+        /bin/prometheus --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/prometheus
+    volumes:
+      - prometheus_data:/prometheus
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: cobank-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
+    volumes:
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+
+volumes:
+  prometheus_data:
+  grafana_data:
